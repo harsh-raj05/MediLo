@@ -78,6 +78,7 @@ export const InvoiceModal = ({ sale, onClose }) => {
 
         {/* Customer & Transaction Info Grid */}
         <div
+          className="invoice-info-grid"
           style={{
             background: 'var(--surface-subtle)',
             border: '1px solid var(--border)',
@@ -169,8 +170,10 @@ export const InvoiceModal = ({ sale, onClose }) => {
         {/* Totals Summary Box */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
           <div
+            className="invoice-summary-card"
             style={{
-              width: '320px',
+              width: '100%',
+              maxWidth: '340px',
               background: 'var(--surface-subtle)',
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-md)',

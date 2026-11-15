@@ -435,7 +435,7 @@ export const StorefrontPage = () => {
         </div>
 
         {/* Right: Cart & Checkout Panel */}
-        <div className="card" style={{ position: 'sticky', top: '5.5rem' }}>
+        <div className="card pos-cart-card">
           <div
             style={{
               display: 'flex',

@@ -300,7 +300,7 @@ export const PosPage = () => {
         </div>
 
         {/* Right Side: Current Register Bill */}
-        <div className="card" style={{ position: 'sticky', top: '5.5rem' }}>
+        <div className="card pos-cart-card">
           <div
             style={{
               display: 'flex',

@@ -70,6 +70,7 @@ export const RegisterPage = () => {
               letterSpacing: '-0.03em',
               marginBottom: '1.25rem',
               maxWidth: '560px',
+              color: '#95bfcdff'
             }}
           >
             Order non-prescription medications with certified batch provenance.
@@ -87,7 +88,7 @@ export const RegisterPage = () => {
             Create an account to browse over-the-counter wellness essentials, view allocated expiry dates, and download official itemized invoices.
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '480px' }}>
+          <div className="auth-hero-value-props" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '480px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
               <div
                 style={{
@@ -139,7 +140,7 @@ export const RegisterPage = () => {
         </div>
 
         <div
-          className="auth-hero-content"
+          className="auth-hero-content auth-hero-pill-badge"
           style={{
             marginTop: '2.5rem',
             background: 'rgba(255, 255, 255, 0.08)',

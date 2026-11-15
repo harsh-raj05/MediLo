@@ -121,7 +121,7 @@ export const LoginPage = () => {
           </p>
 
           {/* Value Highlights */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '480px' }}>
+          <div className="auth-hero-value-props" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '480px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
               <div
                 style={{
@@ -174,7 +174,7 @@ export const LoginPage = () => {
 
         {/* Floating Glassmorphic Footer Pill */}
         <div
-          className="auth-hero-content"
+          className="auth-hero-content auth-hero-pill-badge"
           style={{
             marginTop: '2.5rem',
             background: 'rgba(255, 255, 255, 0.08)',
@@ -341,7 +341,7 @@ export const LoginPage = () => {
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem' }}>
+            <div className="demo-persona-grid">
               {DEMO_ACCOUNTS.map((acc) => {
                 const isSelected = email === acc.email;
                 return (

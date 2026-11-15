@@ -286,14 +286,7 @@ export const PurchasesPage = () => {
                     borderRadius: 'var(--radius)',
                   }}
                 >
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1.8fr 1.1fr 1.1fr 0.8fr 0.9fr 0.9fr auto',
-                      gap: '0.65rem',
-                      alignItems: 'end',
-                    }}
-                  >
+                  <div className="purchase-line-grid">
                     <div>
                       <label className="form-label" style={{ fontSize: '0.72rem' }}>Medicine</label>
                       <select

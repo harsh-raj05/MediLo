@@ -115,19 +115,13 @@ export const Layout = () => {
       {/* Mobile Backdrop */}
       {mobileMenuOpen && (
         <div
-          className="modal-backdrop"
-          style={{ zIndex: 45 }}
+          className="mobile-sidebar-backdrop"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       {/* Main Left Sidebar */}
-      <aside
-        className={`sidebar no-print ${mobileMenuOpen ? 'mobile-open' : ''}`}
-        style={{
-          transform: mobileMenuOpen ? 'translateX(0)' : undefined,
-        }}
-      >
+      <aside className={`sidebar no-print ${mobileMenuOpen ? 'mobile-open' : ''}`}>
         {/* Brand & Logo */}
         <div className="sidebar-brand">
           <MediloBrand
@@ -238,7 +232,7 @@ export const Layout = () => {
 
         {/* Topbar Header */}
         <header className="topbar no-print">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
@@ -250,28 +244,31 @@ export const Layout = () => {
               <Menu size={18} />
             </button>
 
-            <div className="topbar-breadcrumbs" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="topbar-breadcrumbs" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
               <MediloWordmark size="sm" theme="light" />
-              <ChevronRight size={14} style={{ color: 'var(--text-tertiary)' }} />
-              <span style={{ fontWeight: 700, color: 'var(--text)' }}>{currentTitle}</span>
+              <ChevronRight size={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+              <span className="topbar-title-text" style={{ fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {currentTitle}
+              </span>
             </div>
           </div>
 
           <div className="topbar-actions">
             <div className="live-indicator">
               <span className="live-indicator-dot" />
-              <span>FEFO Engine Active</span>
+              <span className="live-indicator-text">FEFO Engine Active</span>
             </div>
 
             <a
               href="/api/docs"
               target="_blank"
               rel="noreferrer"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-secondary btn-sm topbar-swagger-btn"
               style={{ gap: '0.4rem' }}
+              title="Open Swagger API documentation"
             >
-              <span>Swagger API Docs</span>
-              <ExternalLink size={13} style={{ opacity: 0.7 }} />
+              <span className="topbar-swagger-text">Swagger API Docs</span>
+              <ExternalLink size={13} style={{ opacity: 0.7, flexShrink: 0 }} />
             </a>
           </div>
         </header>
@@ -281,28 +278,6 @@ export const Layout = () => {
           <Outlet />
         </main>
       </div>
-
-      <style>{`
-        @media (max-width: 860px) {
-          #mobile-nav-toggle {
-            display: inline-flex !important;
-          }
-          .sidebar {
-            position: fixed !important;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 280px !important;
-            height: 100vh !important;
-            z-index: 50 !important;
-            transform: translateX(-100%);
-            box-shadow: 0 0 40px rgba(0,0,0,0.5);
-          }
-          .sidebar.mobile-open {
-            transform: translateX(0) !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };
