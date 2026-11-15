@@ -239,7 +239,9 @@ export const createSale = async ({
         m.referenceCode = invoiceNumber;
         m.reason = `${saleType === 'ONLINE_ORDER' ? 'Online customer order' : 'POS counter sale'} (${invoiceNumber})`;
       }
-      await StockMovement.create(movementsToCreate, withSession(session));
+      if (movementsToCreate.length > 0) {
+        await StockMovement.insertMany(movementsToCreate, { ...withSession(session), ordered: true });
+      }
 
       await recordAudit(
         {

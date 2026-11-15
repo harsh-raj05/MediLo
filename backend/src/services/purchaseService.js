@@ -171,7 +171,9 @@ export const createPurchase = async ({
     purchaseDoc.totalCost = totalCost;
     await purchaseDoc.save(withSession(session));
 
-    await StockMovement.create(createdMovements, withSession(session));
+    if (createdMovements.length > 0) {
+      await StockMovement.insertMany(createdMovements, { ...withSession(session), ordered: true });
+    }
 
     await recordAudit(
       {

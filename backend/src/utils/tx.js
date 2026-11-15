@@ -22,4 +22,4 @@ export const runInTransaction = async (work) => {
   return work(null);
 };
 
-export const withSession = (session) => (session ? { session } : {});
+export const withSession = (session) => (session ? { session, ordered: true } : {});

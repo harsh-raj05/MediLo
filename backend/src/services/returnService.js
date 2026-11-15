@@ -174,7 +174,9 @@ export const createReturn = async ({ saleId, reason, condition = 'RESTOCKABLE', 
     for (const m of movements) {
       m.referenceId = returnRecord._id;
     }
-    await StockMovement.create(movements, withSession(session));
+    if (movements.length > 0) {
+      await StockMovement.insertMany(movements, { ...withSession(session), ordered: true });
+    }
 
     await recordAudit(
       {

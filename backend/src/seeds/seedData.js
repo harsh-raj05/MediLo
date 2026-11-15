@@ -47,7 +47,7 @@ export const seedDatabase = async ({ reset = false } = {}) => {
   }
 
   const passwordHash = await User.hashPassword(DEMO_PASSWORD);
-  const [adminUser, pharmacistUser, customerUser] = await User.create([
+  const [adminUser, pharmacistUser, customerUser] = await User.insertMany([
     {
       name: 'Dr. Elena Vance (Admin)',
       email: 'admin@medilo.demo',
@@ -71,7 +71,7 @@ export const seedDatabase = async ({ reset = false } = {}) => {
     },
   ]);
 
-  const categories = await Category.create([
+  const categories = await Category.insertMany([
     { name: 'Analgesics & Fever', slug: 'analgesics-fever', defaultTaxRatePct: 5, description: 'Fictional pain and fever relief products' },
     { name: 'Antibiotics', slug: 'antibiotics', defaultTaxRatePct: 12, description: 'Fictional prescription-class antimicrobials (POS only)' },
     { name: 'Allergy & Sinus', slug: 'allergy-sinus', defaultTaxRatePct: 5, description: 'Fictional antihistamines and decongestants' },
@@ -82,7 +82,7 @@ export const seedDatabase = async ({ reset = false } = {}) => {
 
   const catMap = new Map(categories.map((c) => [c.slug, c]));
 
-  const suppliers = await Supplier.create([
+  const suppliers = await Supplier.insertMany([
     {
       code: 'SUP-APEX',
       name: 'Apex BioLogistics Pvt. Ltd.',
@@ -118,7 +118,7 @@ export const seedDatabase = async ({ reset = false } = {}) => {
   const [supApex, supNova, supVita] = suppliers;
 
   // All fictional products (no real medical claims or advice)
-  const medicines = await Medicine.create([
+  const medicines = await Medicine.insertMany([
     {
       sku: 'MED-CALM-500',
       name: 'MediCalm Relief 500mg',
@@ -358,7 +358,7 @@ export const seedDatabase = async ({ reset = false } = {}) => {
     },
   ];
 
-  const createdBatches = await Batch.create(
+  const createdBatches = await Batch.insertMany(
     batchSeeds.map((b) => ({
       medicineId: medBySku.get(b.sku)._id,
       supplierId: b.supplier._id,
@@ -374,7 +374,7 @@ export const seedDatabase = async ({ reset = false } = {}) => {
   );
 
   // Record OPENING stock movements so Stock Reconciliation Report balances to 0 variance
-  await StockMovement.create(
+  await StockMovement.insertMany(
     createdBatches.map((batch) => ({
       medicineId: batch.medicineId,
       batchId: batch._id,
