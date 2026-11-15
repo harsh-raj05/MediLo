@@ -1,4 +1,18 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const getApiBase = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!envUrl) {
+    if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+      return 'https://medilo.onrender.com/api/v1';
+    }
+    return '/api/v1';
+  }
+  const clean = envUrl.trim().replace(/\/+$/, '');
+  if (clean.endsWith('/api/v1')) return clean;
+  if (clean.endsWith('/api')) return `${clean}/v1`;
+  return `${clean}/api/v1`;
+};
+
+const API_BASE = getApiBase();
 
 const TOKEN_KEY = 'medilo_auth_token';
 
@@ -30,13 +44,34 @@ export const apiRequest = async (path, options = {}) => {
     reqHeaders['Idempotency-Key'] = idempotencyKey;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers: reqHeaders,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  const targetUrl = `${API_BASE}${path}`;
+  let response;
+  try {
+    response = await fetch(targetUrl, {
+      method,
+      headers: reqHeaders,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (netErr) {
+    throw new Error(
+      `Unable to reach backend API at '${targetUrl}'. Please verify your backend server is awake and VITE_API_BASE_URL is properly configured.`
+    );
+  }
 
-  const payload = await response.json().catch(() => ({}));
+  const contentType = response.headers.get('content-type') || '';
+  let payload = {};
+
+  if (contentType.includes('application/json')) {
+    payload = await response.json().catch(() => ({}));
+  } else {
+    const text = await response.text().catch(() => '');
+    if (!response.ok) {
+      throw new Error(`Server returned status ${response.status}: ${text.slice(0, 120)}`);
+    }
+    throw new Error(
+      `API endpoint '${targetUrl}' returned HTML instead of JSON. Ensure VITE_API_BASE_URL in your hosting settings points to your deployed backend (e.g. https://your-backend.onrender.com) and the service is active.`
+    );
+  }
 
   if (!response.ok) {
     const message = payload?.error?.message || `Request failed with status ${response.status}`;

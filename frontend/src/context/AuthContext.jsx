@@ -34,9 +34,18 @@ export const AuthProvider = ({ children }) => {
       method: 'POST',
       body: { email, password },
     });
-    setStoredToken(res.data.token);
-    setUser(res.data.user);
-    return res.data.user;
+    const token = res?.data?.token || res?.token;
+    const userObj = res?.data?.user || res?.user;
+
+    if (!token || !userObj) {
+      throw new Error(
+        res?.error?.message || 'Login failed: server did not return valid credentials. Please check your backend connection.'
+      );
+    }
+
+    setStoredToken(token);
+    setUser(userObj);
+    return userObj;
   };
 
   const register = async ({ name, email, password, phone }) => {
@@ -44,9 +53,18 @@ export const AuthProvider = ({ children }) => {
       method: 'POST',
       body: { name, email, password, phone },
     });
-    setStoredToken(res.data.token);
-    setUser(res.data.user);
-    return res.data.user;
+    const token = res?.data?.token || res?.token;
+    const userObj = res?.data?.user || res?.user;
+
+    if (!token || !userObj) {
+      throw new Error(
+        res?.error?.message || 'Registration failed: server did not return valid credentials. Please check your backend connection.'
+      );
+    }
+
+    setStoredToken(token);
+    setUser(userObj);
+    return userObj;
   };
 
   const logout = () => {

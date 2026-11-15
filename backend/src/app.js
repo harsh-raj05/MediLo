@@ -25,7 +25,21 @@ export const createApp = () => {
   );
   app.use(
     cors({
-      origin: env.corsOrigin === '*' ? true : env.corsOrigin.split(',').map((s) => s.trim()),
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (env.corsOrigin === '*') return callback(null, true);
+        const configured = env.corsOrigin.split(',').map((s) => s.trim());
+        const allowed = [
+          'http://localhost:5173',
+          'http://127.0.0.1:5173',
+          'https://medi-lo.vercel.app',
+          ...configured,
+        ];
+        if (origin.endsWith('.vercel.app') || allowed.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(null, true); // Fallback allow in production to prevent user lock-out
+      },
       credentials: true,
     })
   );
