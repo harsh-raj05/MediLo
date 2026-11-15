@@ -1,12 +1,24 @@
 const getApiBase = () => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
-  if (!envUrl) {
+  let envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (!envUrl || !envUrl.trim()) {
     if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
       return 'https://medilo.onrender.com/api/v1';
     }
     return '/api/v1';
   }
-  const clean = envUrl.trim().replace(/\/+$/, '');
+
+  let clean = envUrl.trim().replace(/\/+$/, '');
+
+  // Strip accidental documentation/swagger or auth paths if copied from browser address bar
+  clean = clean
+    .replace(/\/api\/docs.*$/i, '')
+    .replace(/\/docs.*$/i, '')
+    .replace(/\/swagger.*$/i, '');
+
+  if (!clean) {
+    return 'https://medilo.onrender.com/api/v1';
+  }
+
   if (clean.endsWith('/api/v1')) return clean;
   if (clean.endsWith('/api')) return `${clean}/v1`;
   return `${clean}/api/v1`;
