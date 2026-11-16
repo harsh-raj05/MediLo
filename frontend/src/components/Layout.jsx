@@ -2,7 +2,6 @@ import {
   Activity,
   ChevronRight,
   ClipboardList,
-  ExternalLink,
   FileBarChart2,
   History,
   LogOut,
@@ -258,18 +257,6 @@ export const Layout = () => {
               <span className="live-indicator-dot" />
               <span className="live-indicator-text">FEFO Engine Active</span>
             </div>
-
-            <a
-              href="/api/docs"
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-secondary btn-sm topbar-swagger-btn"
-              style={{ gap: '0.4rem' }}
-              title="Open Swagger API documentation"
-            >
-              <span className="topbar-swagger-text">Swagger API Docs</span>
-              <ExternalLink size={13} style={{ opacity: 0.7, flexShrink: 0 }} />
-            </a>
           </div>
         </header>
 

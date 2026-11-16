@@ -1219,12 +1219,6 @@ tbody tr:hover td {
     padding: 0.75rem 1rem;
     gap: 0.65rem;
   }
-  .topbar-swagger-text {
-    display: none;
-  }
-  .topbar-swagger-btn {
-    padding: 0.4rem 0.55rem;
-  }
   .purchase-line-grid {
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
