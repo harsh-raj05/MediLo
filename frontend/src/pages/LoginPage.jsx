@@ -348,22 +348,10 @@ export const LoginPage = () => {
                   <button
                     key={acc.label}
                     type="button"
+                    className={`demo-persona-card ${isSelected ? 'active' : ''}`}
                     onClick={() => {
                       setEmail(acc.email);
                       setPassword(acc.password);
-                    }}
-                    style={{
-                      background: isSelected ? 'var(--primary-subtle)' : '#ffffff',
-                      border: `1.5px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
-                      borderRadius: 'var(--radius)',
-                      padding: '0.75rem 0.65rem',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      transition: 'all var(--transition-fast)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      boxShadow: isSelected ? '0 2px 8px rgba(13, 148, 136, 0.2)' : 'var(--shadow-xs)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '0.25rem' }}>

@@ -389,7 +389,7 @@ export const PosPage = () => {
                       </button>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '0.65rem' }}>
+                    <div className="pos-cart-line-controls">
                       {/* Qty Stepper */}
                       <div>
                         <label className="form-label" style={{ fontSize: '0.7rem' }}>Quantity</label>
@@ -481,7 +481,7 @@ export const PosPage = () => {
               {/* Interactive Payment Tender Toggle */}
               <div className="form-group" style={{ marginBottom: '1rem' }}>
                 <label className="form-label">Payment Method Tender</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                <div className="payment-tender-grid">
                   {[
                     { id: 'CASH', label: 'Cash Tender', icon: Banknote },
                     { id: 'CARD', label: 'RuPay / Card', icon: CreditCard },
