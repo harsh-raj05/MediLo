@@ -7,8 +7,10 @@ import {
   PackageCheck,
   Pill,
   Plus,
+  QrCode,
   Receipt,
   Search,
+  ShieldAlert,
   ShieldCheck,
   ShoppingBag,
   ShoppingCart,
@@ -18,13 +20,17 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiRequest, buildQueryString, formatMoney, generateIdempotencyKey } from '../../api/client.js';
+import { ClinicalSafetyAlert } from '../../components/ClinicalSafetyAlert.jsx';
 import { EmptyState } from '../../components/EmptyState.jsx';
+import { GenericSubstituteModal } from '../../components/GenericSubstituteModal.jsx';
 import { InvoiceModal } from '../../components/InvoiceModal.jsx';
 import { LoadingSpinner } from '../../components/LoadingSpinner.jsx';
 import { MediloBrand } from '../../components/MediloBrand.jsx';
 import { Modal } from '../../components/Modal.jsx';
 import { Pagination } from '../../components/Pagination.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
+import { UpiPaymentModal } from '../../components/UpiPaymentModal.jsx';
+import { analyzeCartSafety } from '../../utils/clinicalSafety.js';
 
 export const StorefrontPage = () => {
   const [medicines, setMedicines] = useState([]);
@@ -38,6 +44,9 @@ export const StorefrontPage = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [cart, setCart] = useState([]);
   const [notes, setNotes] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('UPI');
+  const [showUpiModal, setShowUpiModal] = useState(false);
+  const [substituteTarget, setSubstituteTarget] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [invoiceSale, setInvoiceSale] = useState(null);
   const [quickViewMed, setQuickViewMed] = useState(null);
@@ -82,6 +91,8 @@ export const StorefrontPage = () => {
         {
           medicineId: med._id,
           name: med.name,
+          genericName: med.genericName,
+          category: med.category?.name || '',
           sku: med.sku,
           unitPrice: med.unitPrice,
           taxRatePct: med.taxRatePct,
@@ -102,6 +113,8 @@ export const StorefrontPage = () => {
     setIdemKey(generateIdempotencyKey());
   };
 
+  const safetyAlerts = useMemo(() => analyzeCartSafety(cart), [cart]);
+
   const totals = useMemo(() => {
     let subtotal = 0;
     let tax = 0;
@@ -114,33 +127,44 @@ export const StorefrontPage = () => {
     return { subtotal, tax, grandTotal: subtotal + tax };
   }, [cart]);
 
-  const handleCheckout = async (e) => {
-    e.preventDefault();
+  const executeOrder = async (payMethod = paymentMethod, upiRef = '') => {
     if (cart.length === 0) return;
     setSubmitting(true);
     setError('');
     setSuccessMsg('');
     try {
+      const orderNotes = [notes, upiRef ? `Paid via BharatQR UPI Ref: ${upiRef}` : ''].filter(Boolean).join(' · ');
       const res = await apiRequest('/sales', {
         method: 'POST',
         idempotencyKey: idemKey,
         body: {
-          paymentMethod: 'ONLINE',
-          notes,
+          paymentMethod: payMethod === 'UPI' ? 'UPI' : 'ONLINE',
+          notes: orderNotes,
           items: cart.map((c) => ({ medicineId: c.medicineId, quantity: c.quantity })),
         },
       });
       setInvoiceSale(res.data);
       setCart([]);
       setNotes('');
+      setShowUpiModal(false);
       setIdemKey(generateIdempotencyKey());
-      setSuccessMsg(`Order ${res.data.invoiceNumber} successfully placed! Stock automatically fulfilled via FEFO batch stock.`);
+      setSuccessMsg(`Order ${res.data.invoiceNumber} successfully placed! Stock fulfilled via FEFO batch stock.`);
       fetchCatalog();
     } catch (err) {
       setError(err.message);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCheckout = async (e) => {
+    e.preventDefault();
+    if (cart.length === 0) return;
+    if (paymentMethod === 'UPI') {
+      setShowUpiModal(true);
+      return;
+    }
+    await executeOrder('ONLINE');
   };
 
   return (
@@ -417,14 +441,26 @@ export const StorefrontPage = () => {
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        disabled={med.sellableQuantity <= 0}
-                        onClick={() => addToCart(med)}
-                      >
-                        <Plus size={14} /> Add
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '0.35rem 0.6rem', fontSize: '0.78rem' }}
+                          title="Find generic substitutes & save cost"
+                          onClick={() => setSubstituteTarget(med)}
+                        >
+                          <Sparkles size={13} />
+                          <span>Substitutes</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          disabled={med.sellableQuantity <= 0}
+                          onClick={() => addToCart(med)}
+                        >
+                          <Plus size={14} /> Add
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -474,6 +510,11 @@ export const StorefrontPage = () => {
             />
           ) : (
             <form onSubmit={handleCheckout}>
+              {/* Clinical Decision Support / Drug Safety Alert */}
+              <div style={{ marginBottom: '1rem' }}>
+                <ClinicalSafetyAlert alerts={safetyAlerts} />
+              </div>
+
               {/* Cart Items List */}
               <div
                 style={{
@@ -609,14 +650,46 @@ export const StorefrontPage = () => {
                 </div>
               </div>
 
+              {/* Payment Method Selector */}
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontSize: '0.85rem' }}>Select Payment Flow</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className={`btn ${paymentMethod === 'UPI' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ justifyContent: 'center', fontSize: '0.82rem', padding: '0.55rem 0.65rem' }}
+                    onClick={() => setPaymentMethod('UPI')}
+                  >
+                    <QrCode size={15} /> Instant BharatQR UPI
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${paymentMethod === 'ONLINE' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ justifyContent: 'center', fontSize: '0.82rem', padding: '0.55rem 0.65rem' }}
+                    onClick={() => setPaymentMethod('ONLINE')}
+                  >
+                    <Receipt size={15} /> Card / Net Banking
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 className="btn btn-primary btn-lg"
                 style={{ width: '100%' }}
                 disabled={submitting}
               >
-                <Receipt size={18} />
-                <span>{submitting ? 'Placing Order...' : 'Place Order & Get GST Invoice'}</span>
+                {paymentMethod === 'UPI' ? (
+                  <>
+                    <QrCode size={18} />
+                    <span>Pay with UPI QR ({formatMoney(totals.grandTotal)})</span>
+                  </>
+                ) : (
+                  <>
+                    <Receipt size={18} />
+                    <span>{submitting ? 'Placing Order...' : 'Place Order & Get GST Invoice'}</span>
+                  </>
+                )}
               </button>
             </form>
           )}
@@ -710,20 +783,56 @@ export const StorefrontPage = () => {
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={quickViewMed.sellableQuantity <= 0}
-                onClick={() => {
-                  addToCart(quickViewMed);
-                  setQuickViewMed(null);
-                }}
-              >
-                <Plus size={16} /> Add to Order
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    const target = quickViewMed;
+                    setQuickViewMed(null);
+                    setSubstituteTarget(target);
+                  }}
+                >
+                  <Sparkles size={15} /> Substitutes
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={quickViewMed.sellableQuantity <= 0}
+                  onClick={() => {
+                    addToCart(quickViewMed);
+                    setQuickViewMed(null);
+                  }}
+                >
+                  <Plus size={16} /> Add to Order
+                </button>
+              </div>
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Dynamic BharatQR UPI Modal */}
+      {showUpiModal && (
+        <UpiPaymentModal
+          amount={totals.grandTotal}
+          invoiceNumber={`OTC-${Date.now().toString().slice(-6)}`}
+          onSuccess={(ref) => executeOrder('UPI', ref)}
+          onClose={() => setShowUpiModal(false)}
+        />
+      )}
+
+      {/* Generic Salt & Jan Aushadhi Substitute Finder */}
+      {substituteTarget && (
+        <GenericSubstituteModal
+          targetMedicine={substituteTarget}
+          catalog={medicines}
+          onSelectSubstitute={(sub) => {
+            addToCart(sub);
+            setSubstituteTarget(null);
+          }}
+          onClose={() => setSubstituteTarget(null)}
+        />
       )}
 
       {invoiceSale && <InvoiceModal sale={invoiceSale} onClose={() => setInvoiceSale(null)} />}

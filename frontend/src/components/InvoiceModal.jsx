@@ -1,5 +1,6 @@
-import { CheckCircle2, FileText, Hash, Printer } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, FileText, Hash, Pill, Printer, Sparkles } from 'lucide-react';
 import { formatDate, formatDateTime, formatMoney } from '../api/client.js';
+import { getDosageDirections } from '../utils/clinicalSafety.js';
 import { MediloIcon, MediloWordmark } from './MediloBrand.jsx';
 import { Modal } from './Modal.jsx';
 import { StatusBadge } from './StatusBadge.jsx';
@@ -210,6 +211,89 @@ export const InvoiceModal = ({ sale, onClose }) => {
               <span>Net Grand Total</span>
               <span className="mono" style={{ color: 'var(--primary)' }}>{formatMoney(sale.grandTotal)}</span>
             </div>
+          </div>
+        </div>
+
+        {/* Patient Medication Advisory & Refill Schedule */}
+        <div
+          style={{
+            marginTop: '1.5rem',
+            padding: '1rem 1.25rem',
+            background: 'var(--surface-subtle)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.75rem' }}>
+            <Clock size={16} style={{ color: 'var(--primary)' }} />
+            <strong style={{ fontSize: '0.9rem', color: 'var(--text)' }}>
+              Patient Dosage Schedule &amp; Next Refill Advisor
+            </strong>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+            {sale.items.map((item, idx) => {
+              const dir = getDosageDirections(item.medicineName);
+              const invoiceDate = new Date(sale.createdAt || Date.now());
+              const refillDate = new Date(invoiceDate.getTime() + dir.refillDays * 86400000);
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--border)',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: 'var(--radius-sm)',
+                    gap: '0.75rem',
+                    flexWrap: 'wrap',
+                    fontSize: '0.82rem',
+                  }}
+                >
+                  <div style={{ minWidth: '180px', flex: 1 }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text)' }}>{item.medicineName}</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                      {dir.instructions}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        background: 'var(--primary-subtle)',
+                        color: 'var(--primary)',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: 'var(--radius-sm)',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                      }}
+                    >
+                      {dir.frequency}
+                    </span>
+
+                    <span
+                      className="mono"
+                      style={{
+                        background: 'var(--surface-muted)',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.75rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                      }}
+                    >
+                      <Calendar size={12} /> Refill by: {formatDate(refillDate)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: '0.65rem' }}>
+            * Automated clinical guidance. Please adhere strictly to physician instructions. Store all medicines in a cool, dry place.
           </div>
         </div>
 

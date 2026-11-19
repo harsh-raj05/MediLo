@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   Calendar,
+  FileText,
   Layers,
   Package,
   Plus,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { apiRequest, buildQueryString, formatDate, formatMoney, generateIdempotencyKey } from '../../api/client.js';
+import { DebitNoteModal } from '../../components/DebitNoteModal.jsx';
 import { EmptyState } from '../../components/EmptyState.jsx';
 import { LoadingSpinner } from '../../components/LoadingSpinner.jsx';
 import { Modal } from '../../components/Modal.jsx';
@@ -59,6 +61,9 @@ export const InventoryPage = () => {
   const [adjustTarget, setAdjustTarget] = useState(null);
   const [adjustForm, setAdjustForm] = useState({ delta: -1, adjustmentType: 'DAMAGE', reason: '' });
   const [adjusting, setAdjusting] = useState(false);
+
+  // Supplier Return Debit Note modal
+  const [debitNoteBatch, setDebitNoteBatch] = useState(null);
 
   // Create medicine modal
   const [showNewMed, setShowNewMed] = useState(false);
@@ -150,6 +155,28 @@ export const InventoryPage = () => {
       setError(err.message);
     } finally {
       setAdjusting(false);
+    }
+  };
+
+  const handleDebitNoteComplete = async (debitData) => {
+    setError('');
+    setSuccessMsg('');
+    try {
+      await apiRequest('/inventory/adjustments', {
+        method: 'POST',
+        idempotencyKey: generateIdempotencyKey(),
+        body: {
+          batchId: debitData.batchId,
+          delta: -Number(debitData.quantity),
+          adjustmentType: debitNoteBatch?.isExpired ? 'EXPIRED_DISPOSAL' : 'DAMAGE',
+          reason: `Supplier Return Debit Note ${debitData.debitNoteNumber}: ${debitData.reason} (Credit Claimed: ${formatMoney(debitData.totalCredit)})`,
+        },
+      });
+      setSuccessMsg(`Debit Note ${debitData.debitNoteNumber} issued to ${debitData.supplierName}. Stock reduced by ${debitData.quantity} units.`);
+      setDebitNoteBatch(null);
+      loadBatches();
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -323,20 +350,33 @@ export const InventoryPage = () => {
                           )}
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => {
-                              setAdjustTarget(b);
-                              setAdjustForm({
-                                delta: -1,
-                                adjustmentType: b.isExpired ? 'EXPIRED_DISPOSAL' : 'DAMAGE',
-                                reason: '',
-                              });
-                            }}
-                          >
-                            <SlidersHorizontal size={13} /> Adjust
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            {b.quantityOnHand > 0 && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                style={{ color: 'var(--primary)', borderColor: 'var(--primary-border)' }}
+                                title="Issue GST Debit Note & return to supplier"
+                                onClick={() => setDebitNoteBatch(b)}
+                              >
+                                <FileText size={13} /> Debit Note
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => {
+                                setAdjustTarget(b);
+                                setAdjustForm({
+                                  delta: -1,
+                                  adjustmentType: b.isExpired ? 'EXPIRED_DISPOSAL' : 'DAMAGE',
+                                  reason: '',
+                                });
+                              }}
+                            >
+                              <SlidersHorizontal size={13} /> Adjust
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -680,6 +720,15 @@ export const InventoryPage = () => {
             </div>
           </form>
         </Modal>
+      )}
+
+      {/* Supplier Return Debit Note Modal */}
+      {debitNoteBatch && (
+        <DebitNoteModal
+          batch={debitNoteBatch}
+          onSuccess={handleDebitNoteComplete}
+          onClose={() => setDebitNoteBatch(null)}
+        />
       )}
     </div>
   );

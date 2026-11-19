@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   Banknote,
   Check,
   CreditCard,
@@ -9,17 +10,23 @@ import {
   QrCode,
   Receipt,
   Search,
+  ShieldCheck,
   ShoppingCart,
+  Sparkles,
   Trash2,
   X,
   Zap,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiRequest, buildQueryString, formatDate, formatMoney, generateIdempotencyKey } from '../../api/client.js';
+import { ClinicalSafetyAlert } from '../../components/ClinicalSafetyAlert.jsx';
 import { EmptyState } from '../../components/EmptyState.jsx';
+import { GenericSubstituteModal } from '../../components/GenericSubstituteModal.jsx';
 import { InvoiceModal } from '../../components/InvoiceModal.jsx';
 import { LoadingSpinner } from '../../components/LoadingSpinner.jsx';
 import { StatusBadge } from '../../components/StatusBadge.jsx';
+import { UpiPaymentModal } from '../../components/UpiPaymentModal.jsx';
+import { analyzeCartSafety } from '../../utils/clinicalSafety.js';
 
 export const PosPage = () => {
   const [medicines, setMedicines] = useState([]);
@@ -39,6 +46,22 @@ export const PosPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [invoiceSale, setInvoiceSale] = useState(null);
   const [idemKey, setIdemKey] = useState(() => generateIdempotencyKey());
+  const [showUpiModal, setShowUpiModal] = useState(false);
+  const [substituteTarget, setSubstituteTarget] = useState(null);
+  const [safetyVerified, setSafetyVerified] = useState(false);
+
+  const safetyData = useMemo(() => {
+    return analyzeCartSafety(
+      cart.map((c) => {
+        const med = medicines.find((m) => m._id === c.medicineId);
+        return {
+          ...c,
+          genericName: med?.genericName,
+          categoryName: categories.find((cat) => cat._id === med?.categoryId)?.name,
+        };
+      })
+    );
+  }, [cart, medicines, categories]);
 
   useEffect(() => {
     apiRequest('/catalog/categories')
@@ -122,22 +145,21 @@ export const PosPage = () => {
     return { subtotal, taxTotal, grandTotal };
   }, [cart, discountTotal]);
 
-  const handleCheckout = async (e) => {
-    e.preventDefault();
-    if (cart.length === 0) return;
+  const executeCheckout = async (finalMethod = paymentMethod, utr = '') => {
     setSubmitting(true);
     setError('');
     setSuccessMsg('');
     try {
+      const finalNotes = utr ? `${notes ? notes + ' | ' : ''}UPI UTR Ref: ${utr}` : notes;
       const res = await apiRequest('/sales', {
         method: 'POST',
         idempotencyKey: idemKey,
         body: {
           customerName,
           customerPhone,
-          paymentMethod,
+          paymentMethod: finalMethod,
           discountTotal: Number(discountTotal || 0),
-          notes,
+          notes: finalNotes,
           items: cart.map((c) => ({
             medicineId: c.medicineId,
             quantity: Number(c.quantity),
@@ -149,6 +171,7 @@ export const PosPage = () => {
       setCart([]);
       setDiscountTotal(0);
       setNotes('');
+      setSafetyVerified(false);
       setIdemKey(generateIdempotencyKey());
       setSuccessMsg(`Invoice ${res.data.invoiceNumber} completed! Stock deducted via FEFO.`);
       loadCatalog();
@@ -157,6 +180,16 @@ export const PosPage = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCheckout = async (e) => {
+    e.preventDefault();
+    if (cart.length === 0) return;
+    if (paymentMethod === 'UPI') {
+      setShowUpiModal(true);
+      return;
+    }
+    await executeCheckout(paymentMethod);
   };
 
   return (
@@ -282,14 +315,26 @@ export const PosPage = () => {
                         {formatDate(m.nextExpiryDate)}
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          disabled={m.sellableQuantity <= 0}
-                          onClick={() => addItem(m)}
-                        >
-                          <Plus size={14} /> Add
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            title="Find Generic / Salt Substitutes"
+                            onClick={() => setSubstituteTarget(m)}
+                            style={{ padding: '0.35rem 0.55rem' }}
+                          >
+                            <Pill size={12} color="var(--primary)" />
+                            <span style={{ fontSize: '0.74rem' }}>Substitutes</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            disabled={m.sellableQuantity <= 0}
+                            onClick={() => addItem(m)}
+                          >
+                            <Plus size={14} /> Add
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -339,6 +384,13 @@ export const PosPage = () => {
             />
           ) : (
             <form onSubmit={handleCheckout}>
+              {/* Clinical Safety & Drug Interaction Advisory */}
+              <ClinicalSafetyAlert
+                safetyData={safetyData}
+                verified={safetyVerified}
+                onToggleVerify={setSafetyVerified}
+              />
+
               {/* Item Lines */}
               <div
                 style={{
@@ -602,6 +654,32 @@ export const PosPage = () => {
       </div>
 
       {invoiceSale && <InvoiceModal sale={invoiceSale} onClose={() => setInvoiceSale(null)} />}
+
+      {showUpiModal && (
+        <UpiPaymentModal
+          amount={summary.grandTotal}
+          invoiceRef={`INV-POS-${Date.now().toString().slice(-4)}`}
+          customerName={customerName}
+          onClose={() => setShowUpiModal(false)}
+          onPaymentSuccess={(upiDetails) => {
+            setShowUpiModal(false);
+            executeCheckout('UPI', upiDetails.utrNumber);
+          }}
+        />
+      )}
+
+      {substituteTarget && (
+        <GenericSubstituteModal
+          targetMedicine={substituteTarget}
+          catalog={medicines}
+          onClose={() => setSubstituteTarget(null)}
+          onSelectSubstitute={(sub) => {
+            addItem(sub);
+            setSubstituteTarget(null);
+            setSuccessMsg(`Added generic equivalent ${sub.name} to bill.`);
+          }}
+        />
+      )}
     </div>
   );
 };
