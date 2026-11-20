@@ -29,7 +29,6 @@ A full-stack **Pharmacy Management System** built with **MongoDB, Express, React
 - [System Architecture & Transaction Flows](docs/ARCHITECTURE.md)
 - [Entity-Relationship Diagram & Schema Indexes](docs/ER_DIAGRAM.md)
 - [Technical Design Report](docs/TECHNICAL_REPORT.md)
-- **Interactive API Docs (Swagger UI):** `http://localhost:5000/api/docs` (OpenAPI JSON at `/api/openapi.json`) when the backend is running.
 
 ---
 
